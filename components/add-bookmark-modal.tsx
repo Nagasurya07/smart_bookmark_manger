@@ -1,72 +1,94 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface AddBookmarkModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onBookmarkAdded: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  onBookmarkAdded: () => void;
 }
 
-const CATEGORIES = ['Work','Favorites' , 'Personal', 'Reading', 'Shopping', 'Social', 'Other']
+const CATEGORIES = [
+  "Work",
+  "Favorites",
+  "Personal",
+  "Reading",
+  "Shopping",
+  "Social",
+  "Other",
+];
 
 export function AddBookmarkModal({
   isOpen,
   onClose,
   onBookmarkAdded,
 }: AddBookmarkModalProps) {
-  const [title, setTitle] = useState('')
-  const [url, setUrl] = useState('')
-  const [category, setCategory] = useState('Other')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showDropdown, setShowDropdown] = useState(false)
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+  const [category, setCategory] = useState("Other");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setIsLoading(true)
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
 
     try {
-      // Normalize URL: ensure protocol present and encode to preserve special chars
-      let finalUrl = url.trim()
-      if (finalUrl && !/^https?:\/\//i.test(finalUrl)) {
-        finalUrl = `https://${finalUrl}`
+      // Normalize and validate URL: ensure protocol present and encode to preserve special chars
+      let finalUrl = url.trim();
+      if (!finalUrl) {
+        setError("Please enter a URL");
+        setIsLoading(false);
+        return;
       }
-      finalUrl = encodeURI(finalUrl)
+      if (!/^https?:\/\//i.test(finalUrl)) {
+        finalUrl = `https://${finalUrl}`;
+      }
+      try {
+        finalUrl = encodeURI(finalUrl);
+        // validate parsed URL
+        // eslint-disable-next-line no-new
+        new URL(finalUrl);
+      } catch (err) {
+        setError("Please enter a valid URL");
+        setIsLoading(false);
+        return;
+      }
 
-      const response = await fetch('/api/bookmarks', {
-        method: 'POST',
+      const response = await fetch("/api/bookmarks", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           title,
           url: finalUrl,
           category,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to add bookmark')
+        const data = await response.json();
+        throw new Error(data.error || "Failed to add bookmark");
       }
 
-      setTitle('')
-      setUrl('')
-      setCategory('Other')
-      onBookmarkAdded()
-      onClose()
+      setTitle("");
+      setUrl("");
+      setCategory("Other");
+      onBookmarkAdded();
+      onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -95,8 +117,8 @@ export function AddBookmarkModal({
 
           <div>
             <input
-              type="url"
-              placeholder="URL"
+              type="text"
+              placeholder="URL (e.g. https://example.com)"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -113,7 +135,7 @@ export function AddBookmarkModal({
               <span className="text-gray-900">{category}</span>
               <svg
                 className={`w-5 h-5 text-gray-400 transition-transform ${
-                  showDropdown ? 'rotate-180' : ''
+                  showDropdown ? "rotate-180" : ""
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -135,11 +157,13 @@ export function AddBookmarkModal({
                     key={cat}
                     type="button"
                     onClick={() => {
-                      setCategory(cat)
-                      setShowDropdown(false)
+                      setCategory(cat);
+                      setShowDropdown(false);
                     }}
                     className={`w-full text-left px-4 py-3 hover:bg-gray-50 border-b last:border-b-0 ${
-                      category === cat ? 'bg-purple-50 text-purple-600 font-medium' : 'text-gray-900'
+                      category === cat
+                        ? "bg-purple-50 text-purple-600 font-medium"
+                        : "text-gray-900"
                     }`}
                   >
                     {cat}
@@ -149,19 +173,17 @@ export function AddBookmarkModal({
             )}
           </div>
 
-          {error && (
-            <p className="text-red-600 text-sm">{error}</p>
-          )}
+          {error && <p className="text-red-600 text-sm">{error}</p>}
 
           <Button
             type="submit"
             disabled={isLoading}
             className="w-full bg-black hover:bg-gray-800 text-white py-2 rounded-lg font-semibold mt-6"
           >
-            {isLoading ? 'Adding...' : 'Add Bookmark'}
+            {isLoading ? "Adding..." : "Add Bookmark"}
           </Button>
         </form>
       </div>
     </div>
-  )
+  );
 }
